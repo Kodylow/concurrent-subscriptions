@@ -8,8 +8,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/alexedwards/scs/redisstore"
 	"github.com/alexedwards/scs/v2"
-	"github.com/go-redis/redis/v8"
+	"github.com/gomodule/redigo/redis"
 	_ "github.com/jackc/pgconn"
 	_ "github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -111,6 +112,10 @@ func openDB(dsn string) (*sql.DB, error) {
 func initSession() *scs.SessionManager {
 	log.Printf("Initializing session...")
 	session := scs.New()
+
+	redisPool := newRedisPool()
+	session.Store = redisstore.New(redisPool)
+
 	session.Lifetime = 24 * time.Hour
 	session.Cookie.Persist = true
 	session.Cookie.SameSite = http.SameSiteLaxMode
@@ -119,23 +124,24 @@ func initSession() *scs.SessionManager {
 	return session
 }
 
-// initRedis initializes the Redis connection
-func initRedis() *redis.Client {
+// newRedisPool initializes the Redis connection pool
+func newRedisPool() *redis.Pool {
 	log.Printf("Initializing Redis...")
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS"),
-		Password: "", // No password set
-		DB:       0,  // Use default DB
-	})
+
+	redisPool := &redis.Pool{
+		DialContext: func(ctx context.Context) (redis.Conn, error) {
+			return redis.Dial("tcp", os.Getenv("REDIS"))
+		},
+	}
 
 	// Ping the Redis server to check the connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	conn := redisPool.Get()
+	defer conn.Close()
 
-	_, err := redisClient.Ping(ctx).Result()
+	_, err := conn.Do("PING")
 	if err != nil {
 		log.Fatalf("Could not connect to Redis: %v", err)
 	}
 
-	return redisClient
+	return redisPool
 }
