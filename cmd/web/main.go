@@ -1,11 +1,37 @@
 package main
 
+import (
+	"context"
+	"database/sql"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-redis/redis/v8"
+	_ "github.com/jackc/pgconn"
+	_ "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
+)
+
 const webPort = "80"
 
 func main() {
+	log.Printf("Starting application...")
+	// load environment variables
+	if err := loadEnv(); err != nil {
+		log.Fatal(err)
+	}
+
 	// connect to the database
+	db := initDB()
+	defer db.Close()
+	db.Ping()
 
 	// create sessions
+	session := initSession()
 
 	// create channels
 
@@ -17,4 +43,99 @@ func main() {
 
 	// listen for web connections
 
+}
+
+// loadEnv loads environment variables from a .env file
+func loadEnv() error {
+	// load environment variables from .env file
+	log.Printf("Loading environment variables from .env file...")
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// initDB initializes the database connection
+func initDB() *sql.DB {
+	// open the database connection
+	log.Printf("Connecting to database...")
+	conn := connectToDB()
+	if conn == nil {
+		log.Fatal("Could not connect to database")
+	}
+
+	return conn
+}
+
+// connectToDB attempts to connect to the database
+func connectToDB() *sql.DB {
+	attempts := 0
+
+	dsn := os.Getenv("DB_DSN")
+
+	for {
+		conn, err := openDB(dsn)
+		if err != nil {
+			log.Printf("Could not connect to postgres: %s", err)
+		} else {
+			return conn
+		}
+
+		if attempts > 5 {
+			return nil
+		}
+
+		log.Printf("Retrying postgres connection in 1 second...")
+		time.Sleep(time.Second)
+		attempts++
+	}
+}
+
+// openDB opens a connection to the database
+func openDB(dsn string) (*sql.DB, error) {
+	log.Printf("Opening database connection: %s", dsn)
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+// initSession initializes the session
+func initSession() *scs.SessionManager {
+	log.Printf("Initializing session...")
+	session := scs.New()
+	session.Lifetime = 24 * time.Hour
+	session.Cookie.Persist = true
+	session.Cookie.SameSite = http.SameSiteLaxMode
+	session.Cookie.Secure = true
+
+	return session
+}
+
+// initRedis initializes the Redis connection
+func initRedis() *redis.Client {
+	log.Printf("Initializing Redis...")
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("REDIS"),
+		Password: "", // No password set
+		DB:       0,  // Use default DB
+	})
+
+	// Ping the Redis server to check the connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := redisClient.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("Could not connect to Redis: %v", err)
+	}
+
+	return redisClient
 }
