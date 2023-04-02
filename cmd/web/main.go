@@ -58,11 +58,14 @@ func main() {
 		Models:   data.New(db),
 	}
 
-	app.serve()
-
 	// set up mail
+	app.Mailer = app.createMailer()
+
+	// listen for signals
+	go app.listenForShutdown()
 
 	// listen for web connections
+	app.serve()
 
 }
 
@@ -208,4 +211,27 @@ func (app *Config) shutdown() {
 
 	// shutdown
 	app.InfoLog.Println("Shutdown complete")
+}
+
+func (app *Config) createMailer() Mail {
+	// create channels
+	errorChan := make(chan error)
+	mailerChan := make(chan Message, 100)
+	doneChan := make(chan bool)
+
+	// create mailer
+	m := Mail{
+		Domain:      "localhost",
+		Host:        "localhost",
+		Port:        1025,
+		Encryption:  "none",
+		FromName:    "Info",
+		FromAddress: "info@mycompany.com",
+		Wait:        app.Wait,
+		ErrorChan:   errorChan,
+		MailerChan:  mailerChan,
+		DoneChan:    doneChan,
+	}
+
+	return m
 }

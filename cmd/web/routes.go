@@ -23,5 +23,27 @@ func (app *Config) routes() http.Handler {
 	mux.Post("/register", app.PostRegisterPage)
 	mux.Get("/activate", app.ActivateAccount)
 
+	// mux.Get("/test-email", func(w http.ResponseWriter, r *http.Request) {
+	// 	app.InfoLog.Println("Sending test email")
+	// 	m := Mail{
+	// 		Domain:      "localhost",
+	// 		Host:        "localhost",
+	// 		Port:        1025,
+	// 		Encryption:  "none",
+	// 		FromAddress: "info@mycompany.com",
+	// 		FromName:    "Test",
+	// 		ErrorChan:   make(chan error),
+	// 	}
+
+	// 	msg := Message{
+	// 		To:       "me@here.com",
+	// 		Subject:  "Test Email",
+	// 		Data:     "Hello World",
+	// 		Template: "mail",
+	// 	}
+	// 	app.InfoLog.Println("Sending email")
+	// 	m.sendMail(msg, m.ErrorChan)
+	// })
+
 	return mux
 }
