@@ -1,8 +1,10 @@
 package main
 
 import (
+	"concurrent-subscriptions/data"
 	"context"
 	"database/sql"
+	"encoding/gob"
 	"log"
 	"net/http"
 	"os"
@@ -20,7 +22,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const webPort = "80"
+const webPort = "3000"
 
 func main() {
 	log.Printf("Starting application...")
@@ -53,6 +55,7 @@ func main() {
 		InfoLog:  infoLog,
 		ErrorLog: errorLog,
 		Wait:     &wg,
+		Models:   data.New(db),
 	}
 
 	app.serve()
@@ -145,6 +148,7 @@ func openDB(dsn string) (*sql.DB, error) {
 // initSession initializes the session
 func initSession() *scs.SessionManager {
 	log.Printf("Initializing session...")
+	gob.Register(data.User{})
 	session := scs.New()
 
 	redisPool := newRedisPool()

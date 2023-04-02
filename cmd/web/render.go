@@ -1,6 +1,7 @@
 package main
 
 import (
+	"concurrent-subscriptions/data"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -19,9 +20,10 @@ type TemplateData struct {
 	Error         string
 	Authenticated bool
 	Now           time.Time
-	// User *data.User
+	User          *data.User
 }
 
+// render is a helper function that renders templates using html/template
 func (app *Config) render(w http.ResponseWriter, r *http.Request, t string, td *TemplateData) {
 	partials := []string{
 		fmt.Sprintf("%s/base.layout.gohtml", pathToTemplates),
@@ -56,6 +58,7 @@ func (app *Config) render(w http.ResponseWriter, r *http.Request, t string, td *
 	}
 }
 
+// AddDefaultData adds default data to the template data
 func (app *Config) AddDefaultData(td *TemplateData, r *http.Request) *TemplateData {
 	td.Flash = app.Session.PopString(r.Context(), "flash")
 	td.Warning = app.Session.PopString(r.Context(), "warning")
@@ -69,6 +72,7 @@ func (app *Config) AddDefaultData(td *TemplateData, r *http.Request) *TemplateDa
 	return td
 }
 
+// IsAuthenticated returns true if the user is logged in with a valid session
 func (app *Config) IsAuthenticated(r *http.Request) bool {
-	return app.Session.Exists(r.Context(), "userID")
+	return app.Session.Exists(r.Context(), "user_id")
 }
