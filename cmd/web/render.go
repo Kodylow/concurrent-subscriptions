@@ -17,12 +17,12 @@ type TemplateData struct {
 	Flash         string
 	Warning       string
 	Error         string
-	Authenticated int
+	Authenticated bool
 	Now           time.Time
 	// User	   *data.User
 }
 
-func (app *Config) render(w http.ResponseWriter, r *http.Request, name string, td *TemplateData) {
+func (app *Config) render(w http.ResponseWriter, r *http.Request, name string, t string, td *TemplateData) {
 	partials := []string{
 		fmt.Sprintf("%s/base.layout.gohtml", pathToTemplates),
 		fmt.Sprintf("%s/header.partial.gohtml", pathToTemplates),
@@ -46,7 +46,7 @@ func (app *Config) render(w http.ResponseWriter, r *http.Request, name string, t
 		return
 	}
 
-	if err := tmpl.Execute(w, td); err != nil {
+	if err := tmpl.Execute(w, app.AddDefaultData(td, r)); err != nil {
 		app.ErrorLog.Println(err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
@@ -56,6 +56,15 @@ func (app *Config) AddDefaultData(td *TemplateData, r *http.Request) *TemplateDa
 	td.Flash == app.Session.PopString(r.Context(), "flash")
 	td.Warning == app.Session.PopString(r.Context(), "warning")
 	td.Error == app.Session.PopString(r.Context(), "error")
+	if app.IsAuthenticated(r) {
+		td.Authenticated = true
+		// TODO: get user data
+	}
+	td.Now = time.Now()
 
-	
+	return td
+}
+
+func (app *Config) IsAuthenticated(r *http.Request) bool {
+	return app.Session.Exists(r.Context(), "userID")
 }
