@@ -22,7 +22,7 @@ type TemplateData struct {
 	// User	   *data.User
 }
 
-func (app *Config) render(w http.ResponseWriter, r *http.Request, name string, t string, td *TemplateData) {
+func (app *Config) render(w http.ResponseWriter, r *http.Request, t string, td *TemplateData) {
 	partials := []string{
 		fmt.Sprintf("%s/base.layout.gohtml", pathToTemplates),
 		fmt.Sprintf("%s/header.partial.gohtml", pathToTemplates),

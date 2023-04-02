@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/alexedwards/scs/redisstore"
@@ -176,4 +178,30 @@ func newRedisPool() *redis.Pool {
 	}
 
 	return redisPool
+}
+
+func (app *Config) listenForShutdown() {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	app.shutdown()
+	os.Exit(0)
+}
+
+func (app *Config) shutdown() {
+	// cleanup tasks
+	app.InfoLog.Println("Cleaning up for shutdown...")
+
+	// block until waitgroup is empty
+	app.Wait.Wait()
+
+	// close channels
+	app.InfoLog.Println("Closing channels...")
+
+	// close database connection
+
+	// close mail connection
+
+	// shutdown
+	app.InfoLog.Println("Shutdown complete")
 }

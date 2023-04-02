@@ -12,9 +12,16 @@ func (app *Config) routes() http.Handler {
 
 	// set up middleware
 	mux.Use(middleware.Recoverer)
+	mux.Use(app.SessionLoad)
 
 	// set up routes
 	mux.Get("/", app.HomePage)
+	mux.Get("/login", app.LoginPage)
+	mux.Post("/login", app.PostLoginPage)
+	mux.Get("/logout", app.Logout)
+	mux.Get("/register", app.RegisterPage)
+	mux.Post("/register", app.PostRegisterPage)
+	mux.Get("/activate", app.ActivateAccount)
 
 	return mux
 }
