@@ -58,8 +58,9 @@ func main() {
 		Models:   data.New(db),
 	}
 
-	// set up mail
+	// set up and listen for mail
 	app.Mailer = app.createMailer()
+	go app.listenForMail()
 
 	// listen for signals
 	go app.listenForShutdown()
@@ -201,13 +202,13 @@ func (app *Config) shutdown() {
 
 	// block until waitgroup is empty
 	app.Wait.Wait()
+	app.Mailer.DoneChan <- true
 
 	// close channels
 	app.InfoLog.Println("Closing channels...")
-
-	// close database connection
-
-	// close mail connection
+	close(app.Mailer.ErrorChan)
+	close(app.Mailer.MailerChan)
+	close(app.Mailer.DoneChan)
 
 	// shutdown
 	app.InfoLog.Println("Shutdown complete")

@@ -57,6 +57,7 @@ func (app *Config) listenForMail() {
 // sendMail sends the message as an email
 func (m *Mail) sendMail(msg Message, errorChan chan error) {
 	log.Println("In sendMail...")
+	defer m.Wait.Done()
 	formattedMessage, plainTextMessage := m.buildMessages(&msg, errorChan)
 	email := m.buildEmail(&msg, plainTextMessage, formattedMessage)
 	server := m.setupMailServer()
